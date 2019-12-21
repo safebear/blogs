@@ -1,0 +1,117 @@
+= Notes
+
+== Playing
+
+Great website for playing with requests:
+
+http://httpbin.org/
+
+== API
+
+
+
+== Results Output Reference:
+
+https://docs.k6.io/docs/results-output
+
+Can also output to JSON and you can use jq:
+
+https://stedolan.github.io/jq/
+https://stedolan.github.io/jq/manual/
+
+To query the JSON data. 
+
+Or you can output to CSV also (which is a smaller output and you can also specify how often it captures the output data). 
+
+You can also send the results to multiple outputs!
+
+== Requests
+
+https://docs.k6.io/docs/http-requests
+
+API:
+
+https://docs.k6.io/docs/k6http
+
+Can send multiple requests at once, like a browser, using the `batch()` command
+
+k6 will automatically apply tags to your HTTP requests. These tags allow you to filter your results during analysis.
+
+== Metrics
+
+https://docs.k6.io/docs/result-metrics
+
+API:
+
+https://docs.k6.io/docs/k6metrics
+
+You can access the built-in metrics for a particular request using the `res` object.
+
+You can create custom metrics using the `Trend` class:
+
+[source, javascript]
+----
+import http from "k6/http";
+import { Trend } from "k6/metrics";
+
+var myTrend = new Trend("waiting_time");
+
+export default function() {
+   var r = http.get("https://httpbin.org");
+   myTrend.add(r.timings.waiting);
+};
+----
+
+All metrics (both the built-in ones and the custom ones) have a type. There are four different metrics types, and they are: 
+
+. Counter = cumulative metric (e.g. iterations)
+. Gauge = keep the latest value only
+. Rate = keeps track of percentage of values in a series that are non-zero, or TRUE (rather than FALSE)
+. Trend = collected stats - min/max/avg/percentiles e.g. http_req_sending
+
+Custom metrics are only displayed and collected at the end of each iteration.
+
+== Checks
+
+https://docs.k6.io/docs/checks
+
+Checks API:
+
+https://docs.k6.io/docs/check-val-sets-tags
+
+Checks do not fail performance tests, only Thresholds do. You can combine the two of them:
+
+[source, javascript]
+----
+import http from "k6/http";
+import { check } from "k6";
+import { Rate } from "k6/metrics";
+
+// Set up a new rate that will count only the 'true' values
+export let errorRate = new Rate("errors");
+
+export let options = {
+
+  // Set up a threshold that will fail the test if there's more than 10% error rate
+  thresholds: {
+    "errors": ["rate<0.1"], // <10% errors
+  }
+};
+
+export default function() {
+
+  // Get a true or false value on this check
+  const result = check(http.get("http://httpbin.org"), {
+    "status is 200": (r) => r.status == 200
+  })
+
+  // Only count the 'false' ones (by doing 'not' result)
+  errorRate.add(!result);
+};
+----
+
+If a threshold fails, then the tests exit with a non-zero value and the CI system reports the failure.
+
+Note also the expression check() || errorRate.add(1). When any one of the check conditions inside a check() call fails, check() returns false, which causes the code after || to be executed. In this case it means we add one data point to our Rate metric. Only if all check conditions pass will 'check()' return true.
+
+== Thresholds

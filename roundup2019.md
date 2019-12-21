@@ -1,4 +1,4 @@
-# 2019 in Software Test
+# A Summary of 2019 in Software Testing
 
 At the end of the year, I like to look back at what new discoveries I've made and lessons I've learnt as a QA engineer. 2019 has proved to be a bonanza year, with some startling changes in direction for Test and with new technologies and methodologies making a break into the mainstream. There's been:
 
@@ -8,9 +8,9 @@ At the end of the year, I like to look back at what new discoveries I've made an
 
 3. New Testing methodologies that I'd never encountered before this year (Layout Testing, Mutation Testing, new advances in Shift-Right Testing).
 
-4. Surprise mergers and acquisitions.
+4. Surprising mergers and acquisitions.
 
-5. RPAs suddenly became massively popular and then disappeared again, leaving some interesting open-source options.
+5. RPAs becoming massively popular and then disappeared again, leaving some interesting open-source options.
 
 And much much more.
 
@@ -18,7 +18,7 @@ I'll dive right in with an oft-overlooked area that surprised me the most.
 
 ## Exploratory Testing
 
-One of the most underappreciated and difficult types of Testing is Exploratory Testing. It's incredibly hard to identify how much is too much or too little, and what the scope should be for each feature release, update or bug fix.  However, with the advent of Test Automation replacing Regression Testing, it's a discipline that Testers are starting to (rightfully) pay more time and attention to.
+One of the most under-appreciated and difficult types of Testing is Exploratory Testing. It's incredibly hard to identify how much is too much or too little, and what the scope should be for each feature release, update or bug fix.  However, with the advent of Test Automation replacing Regression Testing, it's a discipline that Testers are starting to (rightfully) pay more time and attention to.
 
 In the past, I've mapped user journeys through an application using Test Cases, and then used these as the bases for Exploratory and Negative Testing. But these are hard to maintain, and it is difficult to describe different flows without creating many Test Cases with duplicated steps.
 
