@@ -1,5 +1,7 @@
 = Notes
 
+Worth parameterising the domain for all requests?
+
 == Playing
 
 Great website for playing with requests:
@@ -115,3 +117,217 @@ If a threshold fails, then the tests exit with a non-zero value and the CI syste
 Note also the expression check() || errorRate.add(1). When any one of the check conditions inside a check() call fails, check() returns false, which causes the code after || to be executed. In this case it means we add one data point to our Rate metric. Only if all check conditions pass will 'check()' return true.
 
 == Thresholds
+
+https://docs.k6.io/docs/thresholds
+
+Example thresholds:
+
+[source, javascript]
+----
+import http from "k6/http";
+import { check } from "k6";
+import { Trend, Rate, Counter, Gauge } from "k6/metrics";
+
+export let TrendRTT = new Trend("RTT");
+export let RateContentOK = new Rate("Content OK");
+export let GaugeContentSize = new Gauge("ContentSize");
+export let CounterErrors = new Counter("Errors");
+
+export let options = {
+	thresholds: {
+    "RTT": [
+      "p(99)<300",
+      "p(70)<250",
+      "avg<200",
+      "med<150",
+      "min<100",
+    ],
+    "Content OK": ["rate>0.95"],
+    "ContentSize": ["value<4000"],
+    "Errors": ["count<100"]
+  }
+};
+
+export default function() {  
+  let res = http.get("https://loadimpact.com");
+  let contentOK = res.html("h1").text().includes("Load Impact");
+  TrendRTT.add(res.timings.duration);
+  RateContentOK.add(contentOK);
+  GaugeContentSize.add(res.body.length);
+  CounterErrors.add(!contentOK);
+};
+----
+
+You can also abort a test when a threshold is crossed.
+
+== Modules
+
+Can use k6 modules and ES6 modules that you've created.
+
+If you want to use NPM modules, you have to use 'browserify' to bundle them up into the script.
+
+https://docs.k6.io/docs/modules
+
+== Groups and Tags
+
+https://docs.k6.io/docs/tags-and-groups
+
+Groups group requests around user actions - BDD style and can be nested.
+
+They come with a `group_duration` metric.
+
+=== Tags
+
+k6 assigns default tags, but you can also define your own.  The following entities can be tagged:
+
+. checks
+. thresholds
+. custom metrics
+. requests
+
+You can also set test-wide tags for all metrics.
+
+== Environment Variables
+
+https://docs.k6.io/docs/environment-variables
+
+Can be passed through from the CLI at runtime:
+
+ MY_HOSTNAME=test.loadimpact.com k6 run script.js
+
+or use the `-e` flag:
+ 
+ k6 run -e MY_HOSTNAME=test.loadimpact.com script.js
+
+The script will look like this:
+
+[source,javascript]
+----
+import { check, sleep } from "k6";
+import http from "k6/http";
+
+export default function() {
+    var r = http.get(`http://${__ENV.MY_HOSTNAME}/`);
+    check(r, {
+        "status is 200": (r) => r.status === 200
+    });
+    sleep(5);
+}
+----
+
+== Options
+
+https://docs.k6.io/docs/options
+
+Can define these in a config file, in the script or from the command line.
+
+== HTML
+
+The Selection API is pretty much the JQuery API:
+
+https://docs.k6.io/docs/selection-k6html
+
+Working with HTML forms:
+
+https://docs.k6.io/docs/working-with-html-forms
+
+== Execution Context Variables:
+
+There are a couple of global variables with execution context information that k6 makes available to the load script, namely __VU and __ITER.
+
+__ITER
+A numeric counter with the current iteration number for a specific VU. Zero-based.
+
+__VU
+Current VU number. The value is assigned incrementally for each new VU instance. One-based. However, VU number is 0 while executing the setup and teardown functions.
+
+Different test behaviors and parameterizations can be accomplished by making use of the execution context variables. A typical use case would be a load test simulating different users performing a login flow.
+
+[source, javascript]
+----
+import http from "k6/http";
+import { sleep } from "k6";
+
+export default function() {
+  const email = `user+${__VU}@mail.com`;
+  const payload = JSON.stringify({ email: email, password: "test" });
+  const params =  { headers: { "Content-Type": "application/json" } }
+  http.post("http://test.loadimpact.com/login", payload, params);
+  console.log(email);
+  // .. continue the user flow
+
+  sleep(1);
+};
+----
+
+== Test Life Cycle
+
+There are four distinct life cycle stages to a k6 test that can be controlled by you, the user. They are the "init", "setup", "vu" and "teardown" stages.
+
+[source,javascript]
+----
+// 1. init code
+
+export function setup() {
+    // 2. setup code
+}
+
+export default function(data) {
+    // 3. vu code
+}
+
+export function teardown(data) {
+    // 4. teardown code
+}
+----
+
+Passing data between stages:
+
+[source,javascript]
+----
+export function setup() {
+    return {v: 1};
+}
+
+export default function(data) {
+    console.log(JSON.stringify(data));
+}
+
+export function teardown(data) {
+    if (data.v != 1) {
+        throw new Error("incorrect data: " + JSON.stringify(data));
+    }
+}
+----
+
+You can make HTTP requests and use the full k6 api in the setup and teardown stages, but not in the init stage.
+
+== Session Recording:
+
+https://docs.k6.io/docs/session-recording-har-support
+
+Use fiddler to record the requests and export the HAR file? Or Firefox? Or just Chrome.
+
+When downloading the HAR file, filter out any third party domains.
+
+https://www.telerik.com/fiddler
+
+Also checkout this help page about how to refactor recorded tests.
+
+Then Correlating Tokens and Dynamic Data:
+
+https://support.loadimpact.com/4.0/examples/correlating-tokens-dynamic-data-load-test/
+
+== Debugging
+
+Use `console.log` or can also use the `http-debug` tag when running to output all requests and responses to console.
+
+`http-debug="full"` will print full body of response also.
+
+== Sharing Tests
+
+Can archive tests for sharing or they can also be pulled in by the CI.
+
+== Optimising your OS for running the tests:
+
+https://docs.k6.io/docs/fine-tuning-your-os
